@@ -1,0 +1,154 @@
+from datetime import datetime
+from typing import List, Dict, Optional
+
+
+class BlogPost:
+    def __init__(self, title: str, content: str, author: str = "Admin"):
+        self.id = None
+        self.title = title.strip()
+        self.content = content.strip()
+        self.author = author.strip()
+        self.created_at = datetime.now()
+        self.updated_at = datetime.now()
+
+    def to_dict(self) -> Dict:
+        return {
+            'id': self.id,
+            'title': self.title,
+            'content': self.content,
+            'author': self.author,
+            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'updated_at': self.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'summary': self.content[:150] + '...' if len(self.content) > 150 else self.content
+        }
+
+    def update(self, title: str = None, content: str = None):
+        if title:
+            self.title = title.strip()
+
+        if content:
+            self.content = content.strip()
+
+        self.updated_at = datetime.now()
+
+
+class BlogStorage:
+    def __init__(self):
+        self._posts: List[BlogPost] = []
+        self._next_id = 1
+        self._create_sample_posts()
+
+    def _create_sample_posts(self):
+        sample_posts = [
+            {
+                'title': '¡Bienvenido a DevBlog!',
+                'content': '''Este es mi primer post en DevBlog, una aplicación creada para aprender DevOps y CI/CD.
+
+En este blog compartiré mi experiencia aprendiendo:
+
+- Desarrollo web con Flask
+- Containerización con Docker
+- Testing automatizado
+- CI/CD con GitHub Actions
+- Despliegue en la nube
+
+¡Espero que disfrutes leyendo tanto como yo disfruto escribiendo!''',
+                'author': 'DevOps Student'
+            },
+            {
+                'title': 'Mi experiencia con Docker',
+                'content': '''Docker ha sido una revelación en mi aprendizaje de DevOps.
+
+La capacidad de empaquetar una aplicación con todas sus dependencias en un contenedor portable es increíble.
+
+Ya no más "en mi máquina funciona"
+
+Algunos beneficios que he descubierto:
+
+- Consistencia entre entornos
+- Fácil escalabilidad
+- Aislamiento de aplicaciones
+- Despliegues más confiables
+
+¿Cuál ha sido tu experiencia con Docker?''',
+                'author': 'DevOps Student'
+            }
+        ]
+
+        for post_data in sample_posts:
+            post = BlogPost(
+                title=post_data['title'],
+                content=post_data['content'],
+                author=post_data['author']
+            )
+            self.create_post(post)
+
+    def create_post(self, post: BlogPost) -> BlogPost:
+        post.id = self._next_id
+        self._next_id += 1
+        self._posts.append(post)
+        return post
+
+    def get_all_posts(self) -> List[BlogPost]:
+        return sorted(
+            self._posts,
+            key=lambda x: x.created_at,
+            reverse=True
+        )
+
+    def get_post_by_id(self, post_id: int) -> Optional[BlogPost]:
+        for post in self._posts:
+            if post.id == post_id:
+                return post
+        return None
+
+    def update_post(
+        self,
+        post_id: int,
+        title: str = None,
+        content: str = None
+    ) -> Optional[BlogPost]:
+
+        post = self.get_post_by_id(post_id)
+
+        if post:
+            post.update(title, content)
+            return post
+
+        return None
+
+    def delete_post(self, post_id: int) -> bool:
+        post = self.get_post_by_id(post_id)
+
+        if post:
+            self._posts.remove(post)
+            return True
+
+        return False
+
+    def search_posts(self, query: str) -> List[BlogPost]:
+        query = query.lower().strip()
+
+        if not query:
+            return self.get_all_posts()
+
+        results = []
+
+        for post in self._posts:
+            if (
+                query in post.title.lower()
+                or query in post.content.lower()
+            ):
+                results.append(post)
+
+        results.sort(
+            key=lambda x: (
+                query not in x.title.lower(),
+                -x.created_at.timestamp()
+            )
+        )
+
+        return results
+
+
+blog_storage = BlogStorage()
